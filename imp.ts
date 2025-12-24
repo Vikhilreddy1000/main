@@ -257,19 +257,91 @@ const gherkinText =
 writeTaggedFeatures(workspacePath, gherkinText);
 
 
-const existingTagLines = new Set(
-  lines.filter(l => l.trim().startsWith("@")).map(l => l.trim())
-);
+function normalizeScenario(scText: string): {
+  normalizedText: string;
+  detectedTags: Set<string>;
+} {
+  const detectedTags = new Set<string>();
 
-const newTagLines = [...detectedTags]
-  .filter(t => !existingTagLines.has(t))
-  .map(t => t);
+  const lines = scText.split(/\r?\n/);
 
-if (newTagLines.length) {
-  lines.splice(firstIdx, 0, ...newTagLines.map(t => `  ${t}`));
+  if (!lines.length) {
+    return { normalizedText: scText, detectedTags };
+  }
+
+  // --------------------------------------------------
+  // 1. Collect existing explicit @tags
+  // --------------------------------------------------
+  for (const line of lines) {
+    const m = line.trim().match(/^@(\w+)/);
+    if (m) {
+      detectedTags.add("@" + m[1].toLowerCase());
+    }
+  }
+
+  // --------------------------------------------------
+  // 2. Find Scenario line index
+  // --------------------------------------------------
+  let scenarioIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().startsWith("Scenario:")) {
+      scenarioIdx = i;
+      break;
+    }
+  }
+
+  if (scenarioIdx === -1) {
+    return { normalizedText: scText, detectedTags };
+  }
+
+  // --------------------------------------------------
+  // 3. Detect "(Label)" at end of Scenario title
+  // --------------------------------------------------
+  const scenarioLine = lines[scenarioIdx];
+  const match = scenarioLine.match(/\(([^)]+)\)\s*$/);
+
+  if (match) {
+    const label = match[1].trim().toLowerCase();
+    const tag = LABEL_TO_TAG[label];
+
+    if (tag) {
+      detectedTags.add(tag);
+
+      // Remove "(Label)" from Scenario title
+      lines[scenarioIdx] = scenarioLine.replace(/\s*\([^)]+\)\s*$/, "");
+    }
+  }
+
+  // --------------------------------------------------
+  // 4. Insert missing tags above Scenario
+  // --------------------------------------------------
+  const existingTagLines = new Set<string>();
+  let insertAt = scenarioIdx;
+
+  for (let i = scenarioIdx - 1; i >= 0; i--) {
+    if (lines[i].trim().startsWith("@")) {
+      existingTagLines.add(lines[i].trim());
+      insertAt = i;
+    } else if (lines[i].trim() === "") {
+      continue;
+    } else {
+      break;
+    }
+  }
+
+  const tagsToInsert = [...detectedTags].filter(
+    t => !existingTagLines.has(t)
+  );
+
+  if (tagsToInsert.length) {
+    const indent = lines[scenarioIdx].match(/^\s*/)?.[0] ?? "";
+    const tagLines = tagsToInsert.map(t => `${indent}${t}`);
+    lines.splice(insertAt, 0, ...tagLines);
+  }
+
+  return {
+    normalizedText: lines.join("\n"),
+    detectedTags,
+  };
 }
 
-return {
-  normalizedText: lines.join("\n"),
-  detectedTags,
-};
