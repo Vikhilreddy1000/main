@@ -255,3 +255,21 @@ const gherkinText =
   response.data.feature_text || response.data;
 
 writeTaggedFeatures(workspacePath, gherkinText);
+
+
+const existingTagLines = new Set(
+  lines.filter(l => l.trim().startsWith("@")).map(l => l.trim())
+);
+
+const newTagLines = [...detectedTags]
+  .filter(t => !existingTagLines.has(t))
+  .map(t => t);
+
+if (newTagLines.length) {
+  lines.splice(firstIdx, 0, ...newTagLines.map(t => `  ${t}`));
+}
+
+return {
+  normalizedText: lines.join("\n"),
+  detectedTags,
+};
