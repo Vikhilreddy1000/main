@@ -41,3 +41,55 @@ self.system_prompt = (
 
     "BEGIN OUTPUT NOW."
 )
+
+
+export async function generateBDD(
+  workspacePath: string,
+  isSpecAvailable: boolean,
+  specContent: string | null,
+  options?: { signal?: AbortSignal }
+) {
+  const files = await workspaceFiles(workspacePath);
+
+  const response = await axios.post(
+    "http://127.0.0.1:8000/testgenie/generatebdd",
+    {
+      files,
+      specContent: specContent ?? null
+    },
+    {
+      headers: {
+        Authorization: `Bearer sample_token`
+      },
+      signal: options?.signal,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
+    }
+  );
+
+  if (isSpecAvailable) {
+    const resSpecContent = response.data?.openAPI_spec;
+
+    if (!resSpecContent) {
+      throw new Error("No OpenAPI spec returned from response");
+    }
+
+    const savedPath = await saveFile(
+      workspacePath,
+      resSpecContent,
+      "output",
+      "openapi.yaml"
+    );
+
+    vscode.window.showInformationMessage(
+      `OpenAPI spec saved at: ${savedPath}`
+    );
+  }
+
+  const gherkinText = response.data?.feature_text || response.data;
+
+  writeTaggedFeatures(workspacePath, gherkinText);
+
+  return response.data;
+}
+
