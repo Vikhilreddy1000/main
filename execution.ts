@@ -227,3 +227,21 @@ def _get_base_url_from_spec(self, spec: Dict[str, Any]) -> str:
             state.execution_output = {"error": str(e)}
 
         return state
+
+
+
+# -----------------------------
+    # 2️⃣ Extract TRIPLE-QUOTED BODY
+    # -----------------------------
+    full_text = "\n".join(lines)
+    body_match = re.search(r'"""(.*?)"""', full_text, re.DOTALL)
+
+    if body_match:
+        raw_body = body_match.group(1).strip()
+        try:
+            body = json.dumps(json.loads(raw_body))
+        except Exception as e:
+            raise ValueError(f"Invalid JSON body:\n{raw_body}")
+
+    return method, url, body
+                                     
