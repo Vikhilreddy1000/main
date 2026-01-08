@@ -26,9 +26,11 @@ class BDDGenerationNode:
     def __init__(self):
         load_dotenv()
 
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-        self.model = os.getenv("MODEL", "gpt-4.1")
+        self.client = AzureOpenAI(
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        )
 
         # --- KEEP YOUR ORIGINAL STRICT PROMPT RULES INTACT ---
         self.system_prompt = (
@@ -76,64 +78,27 @@ class BDDGenerationNode:
             return json.dumps({"error": f"Invalid OpenAPI YAML: {str(e)}"})
 
         # Create ONE SINGLE DETERMINISTIC prompt message
-        user_prompt = self._build_prompt(spec_data)
+        
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                temperature=0,
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": f"
+                    Convert the following OpenAPI 3.0 specification into comprehensive
+                    BDD Gherkin scenarios following ALL rules above.
+                    
+                    {openapi_spec}'}
+                ]
+            )
+        except:
+            print("LLM Error")
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            temperature=0,
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-        )
+        feature_text = response.choices[0].message.content.strip()
 
-        gherkin_output = response.choices[0].message.content
+        
 
-        # Build traceability table
-        table = self._build_feature_table(spec_data)
+    
 
-        result = {
-            "feature_text": gherkin_output,
-            "traceability": table
-        }
-
-        return json.dumps(result, indent=2)
-
-    # ------------------------------------------------------------------
-    # HELPER FUNCTIONS
-    # ------------------------------------------------------------------
-
-    def _build_prompt(self, spec: Dict[str, Any]) -> str:
-        """
-        Creates clear prompt forcing EXACT coverage
-        """
-
-        prompt = "OPENAPI SPECIFICATION:\n\n"
-
-        for path, methods in spec.get("paths", {}).items():
-            prompt += f"PATH: {path}\n"
-
-            for method, details in methods.items():
-                prompt += f"  METHOD: {method.upper()}\n"
-                prompt += f"  SUMMARY: {details.get('summary','')}\n"
-                prompt += f"  DESCRIPTION: {details.get('description','')}\n\n"
-
-        prompt += "\n\nIMPORTANT: COVER EVERY ABOVE ENDPOINT EXACTLY.\n"
-
-        return prompt
-
-    def _build_feature_table(self, spec: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Exact Feature ↔ Endpoint mapping
-        """
-
-        mapping = []
-
-        for path, methods in spec.get("paths", {}).items():
-            for method in methods.keys():
-                mapping.append({
-                    "endpoint": path,
-                    "method": method.upper()
-                })
-
-        return mapping
+    
