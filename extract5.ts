@@ -142,3 +142,9 @@ type ParsedFeature = {
   name: string;
   scenarios: ParsedScenario[];
 };
+
+
+function isNonFunctional(tags: string[]): boolean {
+  return tags.some(t => NON_FUNCTIONAL_TAGS.has(t));
+}
+
