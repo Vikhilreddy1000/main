@@ -191,3 +191,38 @@ extension.ts:
   }
 });
 
+
+// -----------------------------
+  // Message Listener (IMPORTANT)
+  // -----------------------------
+  private registerMessageListener() {
+    this.panel.webview.onDidReceiveMessage(
+      async (message) => {
+        try {
+          if (message.type === "executeBDD") {
+            const { apiUrl, authToken, verifySSL } = message.payload || {};
+
+            if (!apiUrl || !authToken) {
+              vscode.window.showErrorMessage(
+                "API URL and Auth Token are required."
+              );
+              return;
+            }
+
+            await saveRuntimeConfig(apiUrl, authToken, verifySSL);
+
+            await vscode.commands.executeCommand(
+              "extension.generateBDDAPI"
+            );
+          }
+        } catch (err: any) {
+          console.error("BDD WebView message error:", err);
+          vscode.window.showErrorMessage(
+            err?.message || "Failed to execute BDD generation."
+          );
+        }
+      },
+      undefined,
+      this.context.subscriptions
+    );
+  }
