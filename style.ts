@@ -275,3 +275,33 @@ window.addEventListener("message", event => {
     }
   }
 });
+
+
+
+
+
+
+
+
+
+panel.webview.onDidReceiveMessage((message) => {
+  if (message.type === "WEBVIEW_READY") {
+
+    const openApiPath = path.join(outputDir, "openapi.yaml");
+
+    if (!fs.existsSync(openApiPath)) {
+      console.log("openapi.yaml not found");
+      return;
+    }
+
+    const baseUrl = extractBaseUrlFromOpenApi(openApiPath);
+
+    console.log("Sending base URL to webview:", baseUrl);
+
+    panel.webview.postMessage({
+      type: "SET_API_URL_PLACEHOLDER",
+      payload: baseUrl
+    });
+  }
+});
+
