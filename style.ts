@@ -102,3 +102,62 @@ vscode.postMessage({
   authToken,
   verifySSL,
 });
+
+
+/* ============================= */
+/* 🔐 VERIFY SSL TOGGLE SWITCH  */
+/* ============================= */
+
+.ssl-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ssl-switch {
+  position: relative;
+  width: 42px;
+  height: 22px;
+}
+
+.ssl-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ssl-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  border-radius: 22px;
+  transition: 0.3s;
+}
+
+.ssl-slider::before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  top: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+/* ON state */
+.ssl-switch input:checked + .ssl-slider {
+  background-color: #07439c;
+}
+
+.ssl-switch input:checked + .ssl-slider::before {
+  transform: translateX(20px);
+}
+
