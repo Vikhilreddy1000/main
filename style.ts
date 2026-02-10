@@ -161,3 +161,33 @@ vscode.postMessage({
   transform: translateX(20px);
 }
 
+
+
+
+
+
+
+extension.ts:
+
+  webview.onDidReceiveMessage(async (msg) => {
+  if (msg.type === "generateBDD") {
+    const { apiUrl, authToken, verifySSL } = msg.payload;
+
+    if (!apiUrl || !authToken) {
+      vscode.window.showErrorMessage("API URL and Auth Token are required.");
+      return;
+    }
+
+    const config = vscode.workspace.getConfiguration("codegenie");
+
+    await config.update("apiUrl", apiUrl, vscode.ConfigurationTarget.Workspace);
+    await config.update("authToken", authToken, vscode.ConfigurationTarget.Workspace);
+    await config.update("verifySSL", verifySSL, vscode.ConfigurationTarget.Workspace);
+
+    vscode.window.showInformationMessage("Configuration saved. Generating BDD…");
+
+    // Call your existing generation flow
+    generateBDDCommand();
+  }
+});
+
