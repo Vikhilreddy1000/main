@@ -226,3 +226,52 @@ extension.ts:
       this.context.subscriptions
     );
   }
+
+
+Extract base URL from OpenAPI spec
+Support both OpenAPI 3.x and Swagger 2
+
+Add this helper (new file or inside bddExecution.ts):
+
+import yaml from "js-yaml";
+
+export function extractBaseUrlFromSpec(specContent: string): string | null {
+  try {
+    const spec = yaml.load(specContent) as any;
+
+    // OpenAPI 3.x
+    if (spec?.servers?.length) {
+      return spec.servers[0]?.url || null;
+    }
+
+    // Swagger 2.0
+    if (spec?.host) {
+      const scheme = spec.schemes?.[0] || "https";
+      const basePath = spec.basePath || "";
+      return `${scheme}://${spec.host}${basePath}`;
+    }
+
+    return null;
+  } catch (err) {
+    console.error("Failed to parse OpenAPI spec:", err);
+    return null;
+  }
+}
+
+
+Step 3: Handle message in WebView (frontend JS)
+
+In bddWebViewContent.ts inside the <script> block:
+
+window.addEventListener("message", event => {
+  const message = event.data;
+
+  if (message.type === "detectedApiUrl") {
+    const apiInput = document.getElementById("apiUrlInput");
+
+    // Only set placeholder if user hasn't typed anything
+    if (apiInput && !apiInput.value) {
+      apiInput.placeholder = message.apiUrl;
+    }
+  }
+});
