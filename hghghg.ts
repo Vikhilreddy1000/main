@@ -25,3 +25,11 @@ into ONE final valid OpenAPI 3.0 specification:
         ]
 
         final_result = await self.llm.ainvoke(final_messages)
+
+
+
+if hasattr(result, "content"):
+                    return result.content
+                elif isinstance(result, str):
+                    return result
+                return str(result or "")
