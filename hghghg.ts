@@ -33,3 +33,76 @@ if hasattr(result, "content"):
                 elif isinstance(result, str):
                     return result
                 return str(result or "")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import yaml
+
+from copy import deepcopy
+ 
+def merge_openapi_fragments(yaml_chunks: list[str]) -> str:
+
+    merged = {}
+ 
+    for chunk in yaml_chunks:
+
+        if not chunk.strip():
+
+            continue
+ 
+        parsed = yaml.safe_load(chunk)
+
+        if not parsed:
+
+            continue
+ 
+        # First chunk initializes base structure
+
+        if not merged:
+
+            merged = deepcopy(parsed)
+
+            continue
+ 
+        # Merge paths
+
+        if "paths" in parsed:
+
+            merged.setdefault("paths", {})
+
+            for path, methods in parsed["paths"].items():
+
+                merged["paths"].setdefault(path, {})
+
+                merged["paths"][path].update(methods)
+ 
+        # Merge components
+
+        if "components" in parsed:
+
+            merged.setdefault("components", {})
+
+            for key, value in parsed["components"].items():
+
+                merged["components"].setdefault(key, {})
+
+                merged["components"][key].update(value)
+ 
+    return yaml.safe_dump(merged, sort_keys=False)
+
+ 
